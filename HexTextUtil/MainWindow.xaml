@@ -19,7 +19,7 @@
                     <ColumnDefinition Width="100"/>
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0" Command="{Binding HexFilePathSelect}" Content="{materialDesign:PackIcon FileCodeOutline}" Margin="10,0,10,0" />
-                <TextBox Height="24" Grid.Column="1" Text="{Binding HexFilePath}"  materialDesign:HintAssist.Hint="hex/mot File" Margin="0" FontFamily="Meiryo UI"/>
+                <TextBox Height="24" Grid.Column="1" Text="{Binding HexFilePath.Value}"  materialDesign:HintAssist.Hint="hex/mot File" Margin="0" FontFamily="Meiryo UI" Cursor="IBeam"/>
                 <Button Grid.Column="2" Command="{Binding HexFileRead}" Content="Read" Margin="10,0,10,0"/>
             </Grid>
             <GroupBox Header="HexTextFile Info" HorizontalAlignment="Left" Margin="10,50,0,0" Width="233"  Height="110" VerticalAlignment="Top">

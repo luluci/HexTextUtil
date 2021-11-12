@@ -35,11 +35,11 @@ namespace HexTextUtil
 
         // HexFile指定
         public ReactiveCommand HexFilePathSelect { get; } = new ReactiveCommand();
-        public ReactivePropertySlim<string> HexFilePath { get; set; } = new ReactivePropertySlim<string>();
+        public ReactivePropertySlim<string> HexFilePath { get; set; } = new ReactivePropertySlim<string>("");
         public ReactiveCommand HexFileRead { get; } = new ReactiveCommand();
         // CheckSum設定GUI
         public ObservableCollection<CheckSumSetting> CheckSumSettings { get { return Config.ChecksumSettings; } }
-        public ReactivePropertySlim<int> SelectIndexCheckSumSettings { get; set; } = new ReactivePropertySlim<int>();
+        public ReactivePropertySlim<int> SelectIndexCheckSumSettings { get; set; } = new ReactivePropertySlim<int>(0);
         // CheckSum計算GUI
 
         // Config
