@@ -4,9 +4,10 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.Windows;
 using Reactive.Bindings;
 using Reactive.Bindings.Extensions;
 
@@ -36,12 +37,16 @@ namespace HexTextUtil
         // HexFile指定
         public ReactiveCommand HexFilePathSelect { get; } = new ReactiveCommand();
         public ReactivePropertySlim<string> HexFilePath { get; set; } = new ReactivePropertySlim<string>("");
+        public ReactiveCommand HexFilePreviewDragOver { get; } = new ReactiveCommand();
+        public ReactiveCommand HexFileDrop { get; } = new ReactiveCommand();
         public ReactiveCommand HexFileRead { get; } = new ReactiveCommand();
         // CheckSum設定GUI
         public ObservableCollection<CheckSumSetting> CheckSumSettings { get { return Config.ChecksumSettings; } }
         public ReactivePropertySlim<int> SelectIndexCheckSumSettings { get; set; } = new ReactivePropertySlim<int>(0);
         // CheckSum計算GUI
 
+        // hex情報
+        HexText.HexInfo? hex;
         // Config
         private Config Config;
 
@@ -63,15 +68,46 @@ namespace HexTextUtil
                 .AddTo(disposables);
             HexFilePath
                 .AddTo(disposables);
+            HexFilePreviewDragOver
+                .Subscribe(e => HexTextFilePreviewDragOver((DragEventArgs)e))
+                .AddTo(disposables);
+            HexFileDrop
+                .Subscribe(e => HexTextFileDrop((DragEventArgs)e))
+                .AddTo(disposables);
             HexFileRead
                 .Subscribe(_ =>
                 {
+                    hex = new HexText.HexInfo();
+                    var result = hex.Load(HexFilePath.Value);
                 })
                 .AddTo(disposables);
             // CheckSum設定GUI
             SelectIndexCheckSumSettings.Value = 0;
         }
 
+        private void HexTextFilePreviewDragOver(DragEventArgs e)
+        {
+            // マウスポインタを変更する。
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.All;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = e.Data.GetDataPresent(DataFormats.FileDrop);
+        }
+
+        private void HexTextFileDrop(DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                // ドロップしたファイル名を全部取得する。
+                string[] filenames = (string[])e.Data.GetData(DataFormats.FileDrop);
+                HexFilePath.Value = filenames[0];
+            }
+        }
 
 
         private static string? FileSelectDialog(string initDir)

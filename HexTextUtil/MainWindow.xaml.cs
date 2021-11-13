@@ -38,5 +38,6 @@ namespace HexTextUtil
             }
             this.DataContext = this.vm;
         }
+
     }
 }
