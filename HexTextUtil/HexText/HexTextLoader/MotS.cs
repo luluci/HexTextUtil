@@ -18,7 +18,7 @@ namespace HexTextUtil.HexText.HexTextLoader
             reader = new System.IO.StreamReader(path);
         }
 
-        public bool EOF => reader is not null;
+        public bool EOF => reader is null;
         public HexTextFileFormat FileFormat { get; } = HexTextFileFormat.MotS;
 
         public HexTextRecord? Load()
@@ -27,7 +27,8 @@ namespace HexTextUtil.HexText.HexTextLoader
             if (reader is null) return null;
             if (reader.EndOfStream)
             {
-                Status = LoadStatus.NotFoundEndRecord;
+                //Status = LoadStatus.NotFoundEndRecord;
+                Status = LoadStatus.Success;
                 Dispose(true);
                 return null;
             }
@@ -39,14 +40,15 @@ namespace HexTextUtil.HexText.HexTextLoader
                 Dispose(true);
                 return null;
             }
-            if (line[0] != ':')
+            // フォーマットチェック
+            if (line[0] != 'S')
             {
                 Status |= LoadStatus.DetectInvalidFormatLine;
                 Dispose(true);
                 return null;
             }
             // データ展開
-            var buff = line.Substring(1);
+            var buff = $"0{line[1..]}";
             var bytes = ConverBytes(buff);
             // チェックサムチェック
             if (!CheckSum(bytes))
@@ -77,21 +79,21 @@ namespace HexTextUtil.HexText.HexTextLoader
         // byte[]基準オフセット
         private enum RecordBytesOffset : UInt32
         {
-            Length = 0,
-            AddressOffsetHi = 1,
-            AddressOffsetLo = 2,
-            RecordType = 3,
-            Data = 4,
+            RecordType = 0,
+            Length = 1,
+            AddressOffset = 2,
         }
         private bool CheckSum(byte[] bytes)
         {
             // 総和算出
             byte checksum = 0;
             int i;
-            for (i = 0; i < bytes.Length - 1; i++)
+            for (i = 1; i < bytes.Length - 1; i++)
             {
                 checksum += bytes[i];
             }
+            // 1の補数
+            checksum = (byte)(checksum ^ 0xFF);
             // チェックサム比較
             return (checksum == bytes[i]);
         }
@@ -112,6 +114,14 @@ namespace HexTextUtil.HexText.HexTextLoader
                     return AnalyzeRecord4(line, bytes);
                 case 5:
                     return AnalyzeRecord5(line, bytes);
+                case 6:
+                    return AnalyzeRecord6(line, bytes);
+                case 7:
+                    return AnalyzeRecord7(line, bytes);
+                case 8:
+                    return AnalyzeRecord8(line, bytes);
+                case 9:
+                    return AnalyzeRecord9(line, bytes);
 
                 default:
                     return null;
@@ -119,62 +129,95 @@ namespace HexTextUtil.HexText.HexTextLoader
         }
         private HexTextRecord? AnalyzeRecord0(string line, byte[] bytes)
         {
-            // 情報取得
-            int length = bytes[(UInt32)RecordBytesOffset.Length];
-            int dataBegin = (int)RecordBytesOffset.Data;
-            int dataEnd = dataBegin + length;
-            // レコード情報作成
-            var result = new HexTextRecord();
-            result.Address = GetAddressOffset(bytes) + relAddress;
-            result.Record = bytes;
-            result.Data = result.Record[dataBegin..dataEnd];
-            result.DataStr = line.Substring(dataBegin * 2, dataEnd * 2);
-            return result;
-        }
-        private HexTextRecord? AnalyzeRecord1(string line, byte[] bytes)
-        {
-            Status = LoadStatus.Success;
-            Dispose(true);
-            return null;
-        }
-        private HexTextRecord? AnalyzeRecord2(string line, byte[] bytes)
-        {
-            // 拡張セグメントアドレス更新
-            var extend = GetExtendAddress(bytes);
-            relAddress = extend << 4;
-            // 次のレコード取得
-            return Load();
-        }
-        private HexTextRecord? AnalyzeRecord3(string line, byte[] bytes)
-        {
-            // CS:IPレジスタ
+            // ファイル名
             // とりあえず無視
             // 次のレコード取得
             return Load();
         }
+        private HexTextRecord? AnalyzeRecord1(string line, byte[] bytes)
+        {
+            // S1レコードではアドレスは2バイト。
+            return AnalyzeDataRecord(line, bytes, 2);
+        }
+        private HexTextRecord? AnalyzeRecord2(string line, byte[] bytes)
+        {
+            // S2レコードではアドレスは3バイト。
+            return AnalyzeDataRecord(line, bytes, 3);
+        }
+        private HexTextRecord? AnalyzeRecord3(string line, byte[] bytes)
+        {
+            // S3レコードではアドレスは4バイト。
+            return AnalyzeDataRecord(line, bytes, 4);
+        }
         private HexTextRecord? AnalyzeRecord4(string line, byte[] bytes)
         {
-            // 拡張リニアアドレス更新
-            var extend = GetExtendAddress(bytes);
-            relAddress = extend << 16;
+            // 予約レコード
+            // とりあえず無視
             // 次のレコード取得
             return Load();
         }
         private HexTextRecord? AnalyzeRecord5(string line, byte[] bytes)
         {
-            // EIPレジスタ
             // とりあえず無視
             // 次のレコード取得
             return Load();
         }
-
-        private UInt32 GetAddressOffset(byte[] bytes)
+        private HexTextRecord? AnalyzeRecord6(string line, byte[] bytes)
         {
-            return ((UInt32)bytes[(UInt32)RecordBytesOffset.AddressOffsetHi] << 8) | (UInt32)bytes[(UInt32)RecordBytesOffset.AddressOffsetLo];
+            // とりあえず無視
+            // 次のレコード取得
+            return Load();
         }
-        private UInt32 GetExtendAddress(byte[] bytes)
+        private HexTextRecord? AnalyzeRecord7(string line, byte[] bytes)
         {
-            return ((UInt32)bytes[(UInt32)RecordBytesOffset.Data] << 8) | (UInt32)bytes[(UInt32)RecordBytesOffset.Data + 1];
+            // S7,S8,S9出現でファイル終了？
+            // とりあえずEOFで正常終了扱いとする
+            //Status = LoadStatus.Success;
+            //Dispose(true);
+            return null;
+        }
+        private HexTextRecord? AnalyzeRecord8(string line, byte[] bytes)
+        {
+            // S7,S8,S9出現でファイル終了？
+            // とりあえずEOFで正常終了扱いとする
+            //Status = LoadStatus.Success;
+            //Dispose(true);
+            return null;
+        }
+        private HexTextRecord? AnalyzeRecord9(string line, byte[] bytes)
+        {
+            // S7,S8,S9出現でファイル終了？
+            // とりあえずEOFで正常終了扱いとする
+            //Status = LoadStatus.Success;
+            //Dispose(true);
+            return null;
+        }
+
+        private HexTextRecord? AnalyzeDataRecord(string line, byte[] bytes, int addressLen)
+        {
+            // 情報取得
+            // データ長はアドレスサイズとチェックサム1バイトを含む
+            int length = bytes[(UInt32)RecordBytesOffset.Length] - addressLen - 1;
+            // データ位置はアドレスの次になる。
+            int dataBegin = (int)RecordBytesOffset.AddressOffset + addressLen;
+            int dataEnd = dataBegin + length;
+            // レコード情報作成
+            var result = new HexTextRecord();
+            result.Address = GetAddressOffset(bytes, addressLen) + relAddress;
+            result.Record = bytes;
+            result.Data = result.Record[dataBegin..dataEnd];
+            result.DataStr = line.Substring(dataBegin * 2, length * 2);
+            return result;
+        }
+        private UInt32 GetAddressOffset(byte[] bytes, int addressLen)
+        {
+            UInt32 addr = 0;
+            for (int i = 0; i < addressLen; i++)
+            {
+                addr <<= 8;
+                addr += bytes[(UInt32)RecordBytesOffset.AddressOffset + i];
+            }
+            return addr;
         }
 
         protected virtual void Dispose(bool disposing)
