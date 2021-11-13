@@ -50,6 +50,7 @@ namespace HexTextUtil
         public ObservableCollection<CheckSumSetting> CheckSumSettings { get { return Config.ChecksumSettings; } }
         public ReactivePropertySlim<int> SelectIndexCheckSumSettings { get; set; } = new ReactivePropertySlim<int>(0);
         public ReactivePropertySlim<bool> IsReadOnlyCheckSumSettings { get; } = new ReactivePropertySlim<bool>(false);
+        public ReactivePropertySlim<bool> IsEnableCheckSumSettings { get; } = new ReactivePropertySlim<bool>(true);
         // CheckSum計算GUI
         public ReactiveCommand CalcCheckSum { get; } = new ReactiveCommand();
         public ReactivePropertySlim<string> CalcCheckSumResult { get; } = new ReactivePropertySlim<string>("");
@@ -102,10 +103,10 @@ namespace HexTextUtil
                         var config = Config.ChecksumSettings[0];
                         if (!config.AddressRangeFix)
                         {
-                            config.AddressRangeBegin = hex.AddressBegin;
-                            config.AddressRangeEnd = hex.AddressEnd;
-                            config.AddressRangeBeginText.Value = $"{config.AddressRangeBegin:X8}";
-                            config.AddressRangeEndText.Value = $"{config.AddressRangeEnd:X8}";
+                            config.AddressRangeBegin.Value = hex.AddressBegin;
+                            config.AddressRangeEnd.Value = hex.AddressEnd;
+                            config.AddressRangeBeginText.Value = $"{config.AddressRangeBegin.Value:X8}";
+                            config.AddressRangeEndText.Value = $"{config.AddressRangeEnd.Value:X8}";
                         }
                     }
                 })
@@ -122,11 +123,14 @@ namespace HexTextUtil
             // CheckSum設定GUI
             IsReadOnlyCheckSumSettings
                 .AddTo(disposables);
+            IsEnableCheckSumSettings
+                .AddTo(disposables);
             SelectIndexCheckSumSettings
                 .Subscribe(_ =>
                 {
                     var config = Config.ChecksumSettings[SelectIndexCheckSumSettings.Value];
                     IsReadOnlyCheckSumSettings.Value = config.AddressRangeFix;
+                    IsEnableCheckSumSettings.Value = !config.AddressRangeFix;
                 })
                 .AddTo(disposables);
             SelectIndexCheckSumSettings.Value = 0;
@@ -137,8 +141,8 @@ namespace HexTextUtil
                     if (hex is not null)
                     {
                         var config = Config.ChecksumSettings[SelectIndexCheckSumSettings.Value];
-                        var checksum = hex.CalcCheckSum(config.AddressRangeBegin, config.AddressRangeEnd, config.Blank);
-                        switch (config.Length)
+                        var checksum = hex.CalcCheckSum(config.AddressRangeBegin.Value, config.AddressRangeEnd.Value, config.Blank.Value);
+                        switch (config.Length.Value)
                         {
                             case CheckSumLength.Len1Byte: checksum &= 0xFF; break;
                             case CheckSumLength.Len2Byte: checksum &= 0xFFFF; break;
@@ -146,11 +150,11 @@ namespace HexTextUtil
                             default: break;
                         }
                         var sb = new StringBuilder();
-                        if (config.CalcTotal)
+                        if (config.CalcTotal.Value)
                         {
                             sb.AppendLine($"{checksum:X16} (補数なし)");
                         }
-                        if (config.CalcTwosComp)
+                        if (config.CalcTwosComp.Value)
                         {
                             var temp = (checksum ^ 0xFFFFFFFFFFFFFFFF) + 1;
                             sb.AppendLine($"{temp:X16} (2の補数)");

@@ -95,16 +95,16 @@ namespace HexTextUtil
                     try
                     {
                         setting.Name = item.Name;
-                        setting.AddressRangeBegin = Convert.ToUInt32(item.AddressRange.Begin, 16);
-                        setting.AddressRangeEnd = Convert.ToUInt32(item.AddressRange.End, 16);
-                        setting.Blank = Convert.ToByte(item.Blank, 16);
+                        setting.AddressRangeBegin.Value = Convert.ToUInt32(item.AddressRange.Begin, 16);
+                        setting.AddressRangeEnd.Value = Convert.ToUInt32(item.AddressRange.End, 16);
+                        setting.Blank.Value = Convert.ToByte(item.Blank, 16);
                         setting.AddressRangeBeginText.Value = $"{item.AddressRange.Begin:8}";
                         setting.AddressRangeEndText.Value = $"{item.AddressRange.End:8}";
-                        setting.BlankText = item.Blank;
-                        setting.Length = LoadCheckSumSettingsLength(item.Length);
-                        setting.LengthValue = (uint)setting.Length;
-                        setting.CalcTotal = item.CalcTotal;
-                        setting.CalcTwosComp = item.CalcTwosCompl;
+                        setting.BlankText.Value = item.Blank;
+                        setting.Length.Value = LoadCheckSumSettingsLength(item.Length);
+                        setting.LengthValue.Value = (uint)setting.Length.Value;
+                        setting.CalcTotal.Value = item.CalcTotal;
+                        setting.CalcTwosComp.Value = item.CalcTwosCompl;
                         //
                         checksumSettings.Add(setting);
                     }
@@ -208,28 +208,102 @@ namespace HexTextUtil
         public string Name { get; set; } = string.Empty;
         // チェックサム計算アドレス範囲設定
         public bool AddressRangeFix { get; set; } = false;
-        public UInt32 AddressRangeBegin { get; set; } = 0;
-        public UInt32 AddressRangeEnd { get; set; } = 0;
+        public ReactivePropertySlim<UInt32> AddressRangeBegin { get; set; } = new ReactivePropertySlim<UInt32>(0);
+        public ReactivePropertySlim<UInt32> AddressRangeEnd { get; set; } = new ReactivePropertySlim<UInt32>(0);
         public ReactivePropertySlim<string> AddressRangeBeginText { get; set; } = new ReactivePropertySlim<string>(string.Empty);
         public ReactivePropertySlim<string> AddressRangeEndText { get; set; } = new ReactivePropertySlim<string>(string.Empty);
         // Blank
-        public byte Blank { get; set; } = 255;
-        public string BlankText { get; set; } = "FF";
+        public ReactivePropertySlim<byte> Blank { get; set; } = new ReactivePropertySlim<byte>(255);
+        public ReactivePropertySlim<string> BlankText { get; set; } = new ReactivePropertySlim<string>("FF");
         // チェックサム長
         // 0:1byte, 1:2byte, 2:4byte, 3:8byte
-        public CheckSumLength Length { get; set; } = CheckSumLength.Len2Byte;
-        public uint LengthValue { get; set; } = (uint)CheckSumLength.Len2Byte;
+        public ReactivePropertySlim<CheckSumLength> Length { get; set; } = new ReactivePropertySlim<CheckSumLength>(CheckSumLength.Len2Byte);
+        public ReactivePropertySlim<uint> LengthValue { get; set; } = new ReactivePropertySlim<uint>((uint)CheckSumLength.Len2Byte);
         // チェックサム計算方法
         // 補数なし
-        public bool CalcTotal { get; set; } = false;
+        public ReactivePropertySlim<bool> CalcTotal { get; set; } = new ReactivePropertySlim<bool>(false);
         // 2の補数
-        public bool CalcTwosComp { get; set; } = true;
+        public ReactivePropertySlim<bool> CalcTwosComp { get; set; } = new ReactivePropertySlim<bool>(true);
 
         public CheckSumSetting()
         {
+            AddressRangeBegin
+                .AddTo(disposables);
+            AddressRangeEnd
+                .AddTo(disposables);
             AddressRangeBeginText
+                .Subscribe(addr =>
+                {
+                    if (addr == "<auto>")
+                    {
+                        // <auto> は何もしない
+                    }
+                    else
+                    {
+                        try
+                        {
+                            AddressRangeBegin.Value = Convert.ToUInt32(addr, 16);
+                        }
+                        catch (Exception)
+                        {
+                            AddressRangeBeginText.Value = $"{AddressRangeBegin.Value:X8}";
+                        }
+                    }
+                })
                 .AddTo(disposables);
             AddressRangeEndText
+                .Subscribe(addr =>
+                {
+                    if (addr == "<auto>")
+                    {
+                        // <auto> は何もしない
+                    }
+                    else
+                    {
+                        try
+                        {
+                            AddressRangeEnd.Value = Convert.ToUInt32(addr, 16);
+                        }
+                        catch (Exception)
+                        {
+                            AddressRangeEndText.Value = $"{AddressRangeEnd.Value:X8}";
+                        }
+                    }
+                })
+                .AddTo(disposables);
+            Blank
+                .AddTo(disposables);
+            BlankText
+                .Subscribe(data =>
+                {
+                    try
+                    {
+                        Blank.Value = Convert.ToByte(data, 16);
+                    }
+                    catch (Exception)
+                    {
+                        BlankText.Value = $"{Blank.Value:X8}";
+                    }
+                })
+                .AddTo(disposables);
+            Length
+                .AddTo(disposables);
+            LengthValue
+                .Subscribe(index =>
+                {
+                    Length.Value = index switch
+                    {
+                        0 => CheckSumLength.Len1Byte,
+                        1 => CheckSumLength.Len2Byte,
+                        2 => CheckSumLength.Len4Byte,
+                        3 => CheckSumLength.Len8Byte,
+                        _ => CheckSumLength.Len2Byte,
+                    };
+                })
+                .AddTo(disposables);
+            CalcTotal
+                .AddTo(disposables);
+            CalcTwosComp
                 .AddTo(disposables);
         }
 

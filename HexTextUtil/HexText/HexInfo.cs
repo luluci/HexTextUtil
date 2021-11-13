@@ -158,7 +158,7 @@ namespace HexTextUtil.HexText
             }
             if ((record.Address + record.Data.Length) > AddressEnd)
             {
-                AddressEnd = record.Address + (UInt32)record.Data.Length;
+                AddressEnd = record.Address + (UInt32)record.Data.Length - 1;
             }
             // hexコンテナ更新
             // key作成
