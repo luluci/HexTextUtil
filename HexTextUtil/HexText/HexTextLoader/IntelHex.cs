@@ -18,7 +18,7 @@ namespace HexTextUtil.HexText.HexTextLoader
             reader = new System.IO.StreamReader(path);
         }
 
-        public bool EOF => reader is not null;
+        public bool EOF => reader is null;
 
         public HexTextRecord? Load()
         {
@@ -91,6 +91,8 @@ namespace HexTextUtil.HexText.HexTextLoader
             {
                 checksum += bytes[i];
             }
+            // 2の補数
+            checksum = (byte)((checksum ^ 0xFF) + 1);
             // チェックサム比較
             return (checksum == bytes[i]);
         }
@@ -127,7 +129,7 @@ namespace HexTextUtil.HexText.HexTextLoader
             result.Address = GetAddressOffset(bytes) + relAddress;
             result.Record = bytes;
             result.Data = result.Record[dataBegin..dataEnd];
-            result.DataStr = line.Substring(dataBegin*2, dataEnd*2);
+            result.DataStr = line.Substring(dataBegin * 2, length * 2);
             return result;
         }
         private HexTextRecord? AnalyzeRecord1(string line, byte[] bytes)

@@ -6,16 +6,111 @@ using System.Threading.Tasks;
 
 namespace HexTextUtil.HexText
 {
+    internal class MemoryRecord
+    {
+        public const UInt32 RecordSize = 16;
+
+        [Flags]
+        public enum HasData
+        {
+            Empty = 0,
+            Byte0 = 0x0001,
+            Byte1 = 0x0002,
+            Byte2 = 0x0004,
+            Byte3 = 0x0008,
+            Byte4 = 0x0010,
+            Byte5 = 0x0020,
+            Byte6 = 0x0040,
+            Byte7 = 0x0080,
+            Byte8 = 0x0100,
+            Byte9 = 0x0200,
+            ByteA = 0x0400,
+            ByteB = 0x0800,
+            ByteC = 0x1000,
+            ByteD = 0x2000,
+            ByteE = 0x4000,
+            ByteF = 0x8000,
+        }
+        private HasData[] HasDataTable = new HasData[]
+        {
+            HasData.Byte0, HasData.Byte1, HasData.Byte2, HasData.Byte3, HasData.Byte4, HasData.Byte5, HasData.Byte6, HasData.Byte7,
+            HasData.Byte8, HasData.Byte9, HasData.ByteA, HasData.ByteB, HasData.ByteC, HasData.ByteD, HasData.ByteE, HasData.ByteF,
+        };
+
+        public UInt32 Address { get; set; } = 0;
+        private HasData HasDataFlag = HasData.Empty;
+        public byte[] Data { get; set; }
+
+        public MemoryRecord()
+        {
+            Data = new byte[RecordSize];
+        }
+
+        public void Apply(HexTextLoader.HexTextRecord record)
+        {
+            // Addressを基準とした相対位置
+            UInt32 relMem = 0;
+            // レコードに反映するデータのアドレスを算出
+            // (Begin, End]
+            // 開始アドレス
+            UInt32 addressBegin = Address;
+            if (addressBegin < record.Address)
+            {
+                addressBegin = record.Address;
+                relMem = record.Address - Address;
+            }
+            // 終了アドレス
+            UInt32 addressEnd = Address + RecordSize;
+            UInt32 recordMaxAddress = (uint)(record.Address + record.Data.Length);
+            if (addressEnd > recordMaxAddress)
+            {
+                addressEnd = recordMaxAddress;
+            }
+            // record上の相対位置作成
+            UInt32 relRec = addressBegin - record.Address;
+            // レコードに反映
+            for (var addr = addressBegin; addr < addressEnd; addr++, relMem++, relRec++)
+            {
+                Data[relMem] = record.Data[relRec];
+                HasDataFlag |= HasDataTable[relMem];
+            }
+        }
+
+        static public UInt32[] MakeAddresses(HexTextLoader.HexTextRecord record)
+        {
+            // MemoryRecordが保持するデータサイズに応じて、
+            // HexTextRecordをいくつのMemoryRecordに分けて格納するかを計算する。
+            int len = (int)((record.Address & 0xF) + record.Data.Length);
+            int count = (int)(len / RecordSize);
+            if (len % RecordSize != 0)
+            {
+                count++;
+            }
+            // 返り値用バッファ作成
+            UInt32[] result = new UInt32[count];
+            // Address作成
+            var addr = record.Address & 0xFFFFFFF0;
+            result[0] = addr;
+            for (int i = 1; i < count; i++)
+            {
+                addr += 0x10;
+                result[i] = addr;
+            }
+            return result;
+        }
+    }
+
     internal class HexInfo : IDisposable
     {
         private bool disposedValue;
 
         private UInt32 AddressBegin = 0;
         private UInt32 AddressEnd = 0;
+        private Dictionary<UInt32, MemoryRecord> memoryMap;
 
         public HexInfo()
         {
-
+            memoryMap = new Dictionary<uint, MemoryRecord>();
         }
 
         public bool Load(string path)
@@ -50,6 +145,25 @@ namespace HexTextUtil.HexText
                 AddressEnd = record.Address + (UInt32)record.Data.Length;
             }
             // hexコンテナ更新
+            // key作成
+            var keys = MemoryRecord.MakeAddresses(record);
+            foreach (var key in keys)
+            {
+                // value存在チェック
+                if (!memoryMap.ContainsKey(key))
+                {
+                    memoryMap.Add(key, new MemoryRecord() { Address = key });
+                }
+                // record反映
+                memoryMap[key].Apply(record);
+            }
+        }
+
+        private UInt32 GetMemoryMapKey(HexTextLoader.HexTextRecord record)
+        {
+            // MemoryRecordは16バイト単位で構成するので、アドレスの下位4ビットを捨てた値を基準点とする
+            UInt32 result = record.Address & (UInt32)0xFFFFFFF0;
+            return result;
         }
 
         protected virtual void Dispose(bool disposing)
