@@ -142,22 +142,15 @@ namespace HexTextUtil
                     {
                         var config = Config.ChecksumSettings[SelectIndexCheckSumSettings.Value];
                         var checksum = hex.CalcCheckSum(config.AddressRangeBegin.Value, config.AddressRangeEnd.Value, config.Blank.Value);
-                        switch (config.Length.Value)
-                        {
-                            case CheckSumLength.Len1Byte: checksum &= 0xFF; break;
-                            case CheckSumLength.Len2Byte: checksum &= 0xFFFF; break;
-                            case CheckSumLength.Len4Byte: checksum &= 0xFFFFFFFF; break;
-                            default: break;
-                        }
                         var sb = new StringBuilder();
                         if (config.CalcTotal.Value)
                         {
-                            sb.AppendLine($"{checksum:X16} (補数なし)");
+                            sb.AppendLine($"{FormatCheckSum(checksum, config.Length.Value)} (補数なし)");
                         }
                         if (config.CalcTwosComp.Value)
                         {
                             var temp = (checksum ^ 0xFFFFFFFFFFFFFFFF) + 1;
-                            sb.AppendLine($"{temp:X16} (2の補数)");
+                            sb.AppendLine($"{FormatCheckSum(temp, config.Length.Value)} (2の補数)");
                         }
                         CalcCheckSumResult.Value = sb.ToString();
                     }
@@ -165,6 +158,19 @@ namespace HexTextUtil
                 .AddTo(disposables);
             CalcCheckSumResult
                 .AddTo(disposables);
+        }
+
+        private string FormatCheckSum(UInt64 checksum, CheckSumLength len)
+        {
+            int pos = len switch
+            {
+                CheckSumLength.Len1Byte => 16 - 2,
+                CheckSumLength.Len2Byte => 16 - 4,
+                CheckSumLength.Len4Byte => 16 - 8,
+                CheckSumLength.Len8Byte => 16 - 16,
+                _ => 16 - 2,
+            };
+            return $"{checksum:X16}".Substring(pos);
         }
 
         private void HexTextFilePreviewDragOver(DragEventArgs e)
