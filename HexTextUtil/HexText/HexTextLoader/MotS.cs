@@ -19,6 +19,7 @@ namespace HexTextUtil.HexText.HexTextLoader
         }
 
         public bool EOF => reader is not null;
+        public HexTextFileFormat FileFormat { get; } = HexTextFileFormat.MotS;
 
         public HexTextRecord? Load()
         {

@@ -13,6 +13,7 @@ using Reactive.Bindings;
 using Reactive.Bindings.Extensions;
 using System.Reactive.Disposables;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 
 namespace HexTextUtil
 {
@@ -32,16 +33,13 @@ namespace HexTextUtil
             configFilePath = Environment.ProcessPath + @".json";
             // 設定初期化
             // hex/motからの読み込み値を反映する設定をデフォルトでセット
-            checksumSettings = new ObservableCollection<CheckSumSetting>()
-            {
-                new CheckSumSetting()
-                {
-                    Name = "<Default>",
-                    AddressRangeFix = false,
-                    AddressRangeBeginText = "<auto>",
-                    AddressRangeEndText = "<auto>",
-                }
-            };
+            checksumSettings = new ObservableCollection<CheckSumSetting>();
+            var def = new CheckSumSetting();
+            def.Name = "<Manual>";
+            def.AddressRangeFix = false;
+            def.AddressRangeBeginText.Value = "<auto>";
+            def.AddressRangeEndText.Value = "<auto>";
+            checksumSettings.Add(def);
         }
 
         public void Load()
@@ -100,8 +98,8 @@ namespace HexTextUtil
                         setting.AddressRangeBegin = Convert.ToUInt32(item.AddressRange.Begin, 16);
                         setting.AddressRangeEnd = Convert.ToUInt32(item.AddressRange.End, 16);
                         setting.Blank = Convert.ToByte(item.Blank, 16);
-                        setting.AddressRangeBeginText = $"{item.AddressRange.Begin:8}";
-                        setting.AddressRangeEndText = $"{item.AddressRange.End:8}";
+                        setting.AddressRangeBeginText.Value = $"{item.AddressRange.Begin:8}";
+                        setting.AddressRangeEndText.Value = $"{item.AddressRange.End:8}";
                         setting.BlankText = item.Blank;
                         setting.Length = LoadCheckSumSettingsLength(item.Length);
                         setting.LengthValue = (uint)setting.Length;
@@ -112,7 +110,7 @@ namespace HexTextUtil
                     }
                     catch (Exception)
                     {
-
+                        // 不正値はスルー
                     }
                 }
             }
@@ -186,19 +184,37 @@ namespace HexTextUtil
         Len4Byte = 2,
         Len8Byte = 3,
     }
-    public class CheckSumSetting
+    public class CheckSumSetting : IDisposable, INotifyPropertyChanged
     {
+        private bool disposedValue;
+        private CompositeDisposable disposables = new CompositeDisposable();
+
+        #region NotifyPropertyChanged
+#pragma warning disable CS0067
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void SetProperty<T>(ref T target, T value, [System.Runtime.CompilerServices.CallerMemberName] string caller = "")
+        {
+            target = value;
+
+            if (PropertyChanged == null)
+                return;
+            PropertyChangedEventArgs arg = new PropertyChangedEventArgs(caller);
+            PropertyChanged.Invoke(this, arg);
+        }
+#pragma warning restore CS0067
+        #endregion
+
         // Setting名称
         public string Name { get; set; } = string.Empty;
         // チェックサム計算アドレス範囲設定
         public bool AddressRangeFix { get; set; } = false;
-        public UInt32? AddressRangeBegin { get; set; } = null;
-        public UInt32? AddressRangeEnd { get; set; } = null;
-        public string AddressRangeBeginText { get; set; } = string.Empty;
-        public string AddressRangeEndText { get; set; } = string.Empty;
+        public UInt32 AddressRangeBegin { get; set; } = 0;
+        public UInt32 AddressRangeEnd { get; set; } = 0;
+        public ReactivePropertySlim<string> AddressRangeBeginText { get; set; } = new ReactivePropertySlim<string>(string.Empty);
+        public ReactivePropertySlim<string> AddressRangeEndText { get; set; } = new ReactivePropertySlim<string>(string.Empty);
         // Blank
-        public uint Blank { get; set; } = 255;
-        public string BlankText { get; set;} = "FF";
+        public byte Blank { get; set; } = 255;
+        public string BlankText { get; set; } = "FF";
         // チェックサム長
         // 0:1byte, 1:2byte, 2:4byte, 3:8byte
         public CheckSumLength Length { get; set; } = CheckSumLength.Len2Byte;
@@ -208,6 +224,44 @@ namespace HexTextUtil
         public bool CalcTotal { get; set; } = false;
         // 2の補数
         public bool CalcTwosComp { get; set; } = true;
+
+        public CheckSumSetting()
+        {
+            AddressRangeBeginText
+                .AddTo(disposables);
+            AddressRangeEndText
+                .AddTo(disposables);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // TODO: マネージド状態を破棄します (マネージド オブジェクト)
+                    disposables.Dispose();
+                }
+
+                // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
+                // TODO: 大きなフィールドを null に設定します
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: 'Dispose(bool disposing)' にアンマネージド リソースを解放するコードが含まれる場合にのみ、ファイナライザーをオーバーライドします
+        // ~CheckSumSetting()
+        // {
+        //     // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
     public class JsonItem

@@ -6,6 +6,12 @@ using System.Threading.Tasks;
 
 namespace HexTextUtil.HexText.HexTextLoader
 {
+    internal enum HexTextFileFormat
+    {
+        IntelHex,
+        MotS,
+    }
+
     internal class HexTextRecord
     {
         public UInt32 Address { get; set; } = 0;
@@ -27,6 +33,7 @@ namespace HexTextUtil.HexText.HexTextLoader
     {
         public LoadStatus Status { get; set; }
         public bool EOF { get; }
+        public HexTextFileFormat FileFormat { get; }
 
         public HexTextRecord? Load();
     }

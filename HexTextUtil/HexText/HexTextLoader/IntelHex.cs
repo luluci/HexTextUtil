@@ -19,6 +19,7 @@ namespace HexTextUtil.HexText.HexTextLoader
         }
 
         public bool EOF => reader is null;
+        public HexTextFileFormat FileFormat { get; } = HexTextFileFormat.IntelHex;
 
         public HexTextRecord? Load()
         {
