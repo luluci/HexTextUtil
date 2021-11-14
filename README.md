@@ -9,3 +9,6 @@ HEX Text File analyzer!
 
 * Intel HEX
 * Motorola S-record
+
+## Application Requirements
+* .NET 6
