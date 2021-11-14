@@ -78,7 +78,24 @@ namespace HexTextUtil
             else
             {
                 // ファイルが存在しない
-                json = null;
+                // テンプレートを作成
+                json = new JsonItem()
+                {
+                    CheckSumSettings = new List<JsonCheckSumSetting>()
+                    {
+                        new JsonCheckSumSetting()
+                        {
+                            Name = "SampleSetting1",
+                            AddressRange = new JsonAddressRange(){ Begin = "000000", End = "00FFFF"},
+                            Blank = "FF",
+                            Length = 2,
+                            CalcTotal = false,
+                            CalcTwosCompl = true,
+                        }
+                    }
+                };
+                // ファイルに保存
+                Save();
             }
             // JSONデータを制御値に反映
             LoadCheckSumSettings();
