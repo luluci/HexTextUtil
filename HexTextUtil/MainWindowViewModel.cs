@@ -73,6 +73,7 @@ namespace HexTextUtil
                     if (result is not null)
                     {
                         HexFilePath.Value = result;
+                        HexFileRead.Execute();
                     }
                 })
                 .AddTo(disposables);
@@ -108,6 +109,8 @@ namespace HexTextUtil
                             config.AddressRangeBeginText.Value = $"{config.AddressRangeBegin.Value:X8}";
                             config.AddressRangeEndText.Value = $"{config.AddressRangeEnd.Value:X8}";
                         }
+                        // CheckSum計算
+                        CalcCheckSum.Execute();
                     }
                 })
                 .AddTo(disposables);
@@ -194,6 +197,7 @@ namespace HexTextUtil
                 // ドロップしたファイル名を全部取得する。
                 string[] filenames = (string[])e.Data.GetData(DataFormats.FileDrop);
                 HexFilePath.Value = filenames[0];
+                HexFileRead.Execute();
             }
         }
 
