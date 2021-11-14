@@ -40,7 +40,7 @@ namespace HexTextUtil
         public ReactivePropertySlim<string> HexFilePath { get; set; } = new ReactivePropertySlim<string>("");
         public ReactiveCommand HexFilePreviewDragOver { get; } = new ReactiveCommand();
         public ReactiveCommand HexFileDrop { get; } = new ReactiveCommand();
-        public ReactiveCommand HexFileRead { get; } = new ReactiveCommand();
+        public AsyncReactiveCommand HexFileRead { get; } = new AsyncReactiveCommand();
         // HexFile Info 設定GUI
         public ReactivePropertySlim<string> HexTextAddressBegin { get; } = new ReactivePropertySlim<string>("-");
         public ReactivePropertySlim<string> HexTextAddressEnd { get; } = new ReactivePropertySlim<string>("-");
@@ -52,7 +52,7 @@ namespace HexTextUtil
         public ReactivePropertySlim<bool> IsReadOnlyCheckSumSettings { get; } = new ReactivePropertySlim<bool>(false);
         public ReactivePropertySlim<bool> IsEnableCheckSumSettings { get; } = new ReactivePropertySlim<bool>(true);
         // CheckSum計算GUI
-        public ReactiveCommand CalcCheckSum { get; } = new ReactiveCommand();
+        public AsyncReactiveCommand CalcCheckSum { get; } = new AsyncReactiveCommand();
         public ReactivePropertySlim<string> CalcCheckSumResult { get; } = new ReactivePropertySlim<string>("");
 
         // hex情報
@@ -86,7 +86,7 @@ namespace HexTextUtil
                 .Subscribe(e => HexTextFileDrop((DragEventArgs)e))
                 .AddTo(disposables);
             HexFileRead
-                .Subscribe(_ =>
+                .Subscribe(async (_) =>
                 {
                     // hexファイルロード
                     hex = new HexText.HexInfo();
@@ -111,6 +111,10 @@ namespace HexTextUtil
                         }
                         // CheckSum計算
                         CalcCheckSum.Execute();
+                    }
+                    else
+                    {
+                        hex = null;
                     }
                 })
                 .AddTo(disposables);
@@ -139,7 +143,7 @@ namespace HexTextUtil
             SelectIndexCheckSumSettings.Value = 0;
             //
             CalcCheckSum
-                .Subscribe(_ =>
+                .Subscribe(async _ =>
                 {
                     if (hex is not null)
                     {
