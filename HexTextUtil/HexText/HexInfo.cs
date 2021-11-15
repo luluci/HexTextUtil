@@ -63,25 +63,25 @@ namespace HexTextUtil.HexText
         public void Apply(HexTextLoader.HexTextRecord record)
         {
             // Addressを基準とした相対位置
-            UInt32 relMem = 0;
+            UInt64 relMem = 0;
             // レコードに反映するデータのアドレスを算出
             // (Begin, End]
             // 開始アドレス
-            UInt32 addressBegin = Address;
+            UInt64 addressBegin = Address;
             if (addressBegin < record.Address)
             {
                 addressBegin = record.Address;
                 relMem = record.Address - Address;
             }
             // 終了アドレス
-            UInt32 addressEnd = Address + RecordSize;
-            UInt32 recordMaxAddress = (uint)(record.Address + record.Data.Length);
+            UInt64 addressEnd = (UInt64)Address + RecordSize;
+            UInt64 recordMaxAddress = (UInt64)record.Address + (UInt64)record.Data.Length;
             if (addressEnd > recordMaxAddress)
             {
                 addressEnd = recordMaxAddress;
             }
             // record上の相対位置作成
-            UInt32 relRec = addressBegin - record.Address;
+            UInt64 relRec = addressBegin - record.Address;
             // レコードに反映
             for (var addr = addressBegin; addr < addressEnd; addr++, relMem++, relRec++)
             {
@@ -118,7 +118,7 @@ namespace HexTextUtil.HexText
     {
         private bool disposedValue;
 
-        public UInt32 AddressBegin = 0;
+        public UInt32 AddressBegin = UInt32.MaxValue;
         public UInt32 AddressEnd = 0;
         private Dictionary<UInt32, MemoryRecord> memoryMap;
         public HexTextLoader.HexTextFileFormat FileFormat { get; set; }
@@ -140,7 +140,12 @@ namespace HexTextUtil.HexText
                 {
                     // レコード取得
                     var record = loader.Load();
-                    if (record is null) break;
+                    if (record is null)
+                    {
+                        // null出現で解析終了
+                        // Statusで正常終了か異常終了か判断する
+                        return loader.Status == HexTextLoader.LoadStatus.Success;
+                    }
                     // レコード展開
                     LoadRecord(record);
                 }
@@ -185,21 +190,26 @@ namespace HexTextUtil.HexText
             UInt64 checksum = 0;
             // MemoryRecordインデックスを計算
             var key = GetMemoryMapKey(begin);
-            UInt32 beginOffset = begin - key;
-            UInt32 endOffset = 16;
-            if ((key + 16) > end)
+            // MemoryRecord(16バイトバッファ)に対しての計算インデックス
+            // 最初のMemoryRecordは途中から開始する可能性がある
+            UInt32 memIndexBegin = begin - key;
+            UInt32 memIndexEnd = 16;
+            if (end - key < 16)
             {
-                endOffset = end - key + 1;
+                // MemoryRecordの途中まで使う場合
+                memIndexEnd = end - key + 1;
             }
-            // 
-            while (key <= end)
+            // Uint32の最大値までアドレスが入るので、計算対象アドレスの超過判定のために一つ大きい型で超過判定をする
+            UInt64 addrCurr = key;
+            UInt64 addrEnd = end;
+            while (addrCurr <= addrEnd)
             {
                 // Memory読み出し
                 if (memoryMap.ContainsKey(key))
                 {
                     // keyが存在するとき
                     var mem = memoryMap[key];
-                    for (UInt32 i = beginOffset; i < endOffset; i++)
+                    for (var i = memIndexBegin; i < memIndexEnd; i++)
                     {
                         var data = mem[i];
                         if (data is not null)
@@ -215,23 +225,26 @@ namespace HexTextUtil.HexText
                 else
                 {
                     // keyが存在しないときはすべてblank
-                    for (UInt32 i = beginOffset; i < endOffset; i++)
+                    for (var i = memIndexBegin; i < memIndexEnd; i++)
                     {
                         checksum += blank;
                     }
                 }
                 // 計算アドレス情報更新
+                addrCurr += 0x10;
+                // keyがオーバーフローする可能性があるが、そのときはwhileも終了するので問題なし
                 key += 0x10;
-                beginOffset = 0;
-                if ((key + 16) > end)
+                memIndexBegin = 0;
+                memIndexEnd = 16;
+                if (end - key < 16)
                 {
-                    endOffset = end - key + 1;
+                    memIndexEnd = end - key + 1;
                 }
             }
 
             return checksum;
         }
-        private UInt32 GetMemoryMapKey(UInt32 addr)
+        private static UInt32 GetMemoryMapKey(UInt32 addr)
         {
             // MemoryRecordは16バイト単位で構成するので、アドレスの下位4ビットを捨てた値を基準点とする
             UInt32 result = addr & (UInt32)0xFFFFFFF0;
