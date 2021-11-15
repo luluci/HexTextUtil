@@ -41,13 +41,19 @@ namespace HexTextUtil.HexText.HexTextLoader
             }
             if (line[0] != ':')
             {
-                Status |= LoadStatus.DetectInvalidFormatLine;
+                Status = LoadStatus.DetectInvalidFormatLine;
                 Dispose(true);
                 return null;
             }
             // データ展開
             var buff = line.Substring(1);
             var bytes = ConverBytes(buff);
+            if (bytes is null)
+            {
+                Status = LoadStatus.DetectInvalidFormatLine;
+                Dispose(true);
+                return null;
+            }
             // チェックサムチェック
             if (!CheckSum(bytes))
             {
@@ -58,17 +64,23 @@ namespace HexTextUtil.HexText.HexTextLoader
             return AnalyzeRecord(buff, bytes);
         }
 
-        private byte[] ConverBytes(string line)
+        private static byte[]? ConverBytes(string line)
         {
             byte[] result = new byte[line.Length / 2];
 
             int cur = 0;
 
-            for (int i = 0; i < line.Length; i = i + 2)
+            try
             {
-                string w = line.Substring(i, 2);
-                result[cur] = Convert.ToByte(w, 16);
-                cur++;
+                for (int i = 0; i < line.Length; i = i + 2)
+                {
+                    string w = line.Substring(i, 2);
+                    result[cur] = Convert.ToByte(w, 16);
+                    cur++;
+                }
+            }catch (Exception)
+            {
+                return null;
             }
 
             return result;

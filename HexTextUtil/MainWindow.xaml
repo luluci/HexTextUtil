@@ -49,11 +49,13 @@
                     </Grid>
                     <Grid Margin="0,29,0,0" Height="29" VerticalAlignment="Top">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="70"/>
-                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="50"/>
+                            <ColumnDefinition Width="50"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <RadioButton Grid.Column="0" Content="hex" IsChecked="{Binding HexTextFormatIntel.Value}" IsHitTestVisible="False" Style="{StaticResource MaterialDesignRadioButton}"/>
                         <RadioButton Grid.Column="1" Content="mot" IsChecked="{Binding HexTextFormatMot.Value}" IsHitTestVisible="False"/>
+                        <TextBox Grid.Column="2" Text="{Binding HexTextLoadStatus.Value, Mode=OneWay}" IsReadOnly="True" Margin="5,0,0,0" Padding="5,8,0,0" Cursor="IBeam"/>
                     </Grid>
                 </Grid>
             </GroupBox>

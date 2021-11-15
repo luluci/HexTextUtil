@@ -128,12 +128,12 @@ namespace HexTextUtil.HexText
             memoryMap = new Dictionary<uint, MemoryRecord>();
         }
 
-        public bool Load(string path)
+        public HexTextLoader.LoadStatus Load(string path)
         {
             // Loader作成
             using (var loader = HexTextLoader.HexFileLoader.HexFileLoaderFactory(path))
             {
-                if (loader is null) return false;
+                if (loader is null) return HexTextLoader.LoadStatus.ReadFileError;
                 FileFormat = loader.FileFormat;
                 // HexTextの内容解析
                 while (!loader.EOF)
@@ -144,14 +144,14 @@ namespace HexTextUtil.HexText
                     {
                         // null出現で解析終了
                         // Statusで正常終了か異常終了か判断する
-                        return loader.Status == HexTextLoader.LoadStatus.Success;
+                        return loader.Status;
                     }
                     // レコード展開
                     LoadRecord(record);
                 }
             }
 
-            return true;
+            return HexTextLoader.LoadStatus.NotFoundEndRecord;
         }
 
         private void LoadRecord(HexTextLoader.HexTextRecord record)

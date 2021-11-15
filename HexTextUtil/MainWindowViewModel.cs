@@ -46,6 +46,7 @@ namespace HexTextUtil
         public ReactivePropertySlim<string> HexTextAddressEnd { get; } = new ReactivePropertySlim<string>("-");
         public ReactivePropertySlim<bool> HexTextFormatIntel { get; } = new ReactivePropertySlim<bool>(false);
         public ReactivePropertySlim<bool> HexTextFormatMot { get; } = new ReactivePropertySlim<bool>(false);
+        public ReactivePropertySlim<string> HexTextLoadStatus { get; } = new ReactivePropertySlim<string>("");
         // CheckSum Info 設定GUI
         public ObservableCollection<CheckSumSetting> CheckSumSettings { get { return Config.ChecksumSettings; } }
         public ReactivePropertySlim<int> SelectIndexCheckSumSettings { get; set; } = new ReactivePropertySlim<int>(0);
@@ -85,14 +86,25 @@ namespace HexTextUtil
             HexFileDrop
                 .Subscribe(e => HexTextFileDrop((DragEventArgs)e))
                 .AddTo(disposables);
+            HexTextLoadStatus
+                .AddTo(disposables);
             HexFileRead
                 .Subscribe(async (_) =>
                 {
                     // hexファイルロード
                     hex = new HexText.HexInfo();
                     var result = hex.Load(HexFilePath.Value);
+                    HexTextLoadStatus.Value = result switch
+                    {
+                        HexText.HexTextLoader.LoadStatus.Success => "File Read OK",
+                        HexText.HexTextLoader.LoadStatus.NotFoundEndRecord => "Err: FileFormat NG",
+                        HexText.HexTextLoader.LoadStatus.DetectInvalidFormatLine => "Err: FileFormat NG",
+                        HexText.HexTextLoader.LoadStatus.ReadFileError => "Err: File is locked",
+                        HexText.HexTextLoader.LoadStatus.DetectCheckSumError => "Err: CheckSum NG",
+                        _ => "",
+                    };
                     // 成功したらGUIに展開
-                    if (result)
+                    if (result == HexText.HexTextLoader.LoadStatus.Success)
                     {
                         // HexTextFile Info
                         HexTextAddressBegin.Value = $"{hex.AddressBegin:X8}";
