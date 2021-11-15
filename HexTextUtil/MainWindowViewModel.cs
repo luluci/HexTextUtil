@@ -8,6 +8,8 @@ using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using MaterialDesignThemes.Wpf;
 using Reactive.Bindings;
 using Reactive.Bindings.Extensions;
 
@@ -55,14 +57,20 @@ namespace HexTextUtil
         // CheckSum計算GUI
         public AsyncReactiveCommand CalcCheckSum { get; } = new AsyncReactiveCommand();
         public ReactivePropertySlim<string> CalcCheckSumResult { get; } = new ReactivePropertySlim<string>("");
+        // ダイアログ
+        public ReactivePropertySlim<string> DialogMessage { get; set; } = new ReactivePropertySlim<string>("");
 
         // hex情報
         HexText.HexInfo? hex;
         // Config
         private Config Config;
 
-        public MainWindowViewModel()
+        private StackPanel dialog;
+
+        public MainWindowViewModel(StackPanel dialog)
         {
+            this.dialog = dialog;
+
             // Configロード
             Config = new Config();
             Config.Load();
@@ -91,43 +99,16 @@ namespace HexTextUtil
             HexFileRead
                 .Subscribe(async (_) =>
                 {
-                    // hexファイルロード
-                    hex = new HexText.HexInfo();
-                    var result = hex.Load(HexFilePath.Value);
-                    HexTextLoadStatus.Value = result switch
+                    DialogMessage.Value = "Reading HexText File ...";
+                    var result = await DialogHost.Show(this.dialog, async delegate (object sender, DialogOpenedEventArgs args)
                     {
-                        HexText.HexTextLoader.LoadStatus.Success => "File Read OK",
-                        HexText.HexTextLoader.LoadStatus.NotFoundEndRecord => "Err: FileFormat NG",
-                        HexText.HexTextLoader.LoadStatus.DetectInvalidFormatLine => "Err: FileFormat NG",
-                        HexText.HexTextLoader.LoadStatus.ReadFileError => "Err: File is locked",
-                        HexText.HexTextLoader.LoadStatus.DetectCheckSumError => "Err: CheckSum NG",
-                        _ => "",
-                    };
-                    // 成功したらGUIに展開
-                    if (result == HexText.HexTextLoader.LoadStatus.Success)
-                    {
-                        // HexTextFile Info
-                        HexTextAddressBegin.Value = $"{hex.AddressBegin:X8}";
-                        HexTextAddressEnd.Value = $"{hex.AddressEnd:X8}";
-                        var ishex = hex.FileFormat == HexText.HexTextLoader.HexTextFileFormat.IntelHex;
-                        HexTextFormatIntel.Value = ishex;
-                        HexTextFormatMot.Value = !ishex;
-                        // CheckSum Info
-                        var config = Config.ChecksumSettings[0];
-                        if (!config.AddressRangeFix)
-                        {
-                            config.AddressRangeBegin.Value = hex.AddressBegin;
-                            config.AddressRangeEnd.Value = hex.AddressEnd;
-                            config.AddressRangeBeginText.Value = $"{config.AddressRangeBegin.Value:X8}";
-                            config.AddressRangeEndText.Value = $"{config.AddressRangeEnd.Value:X8}";
-                        }
+                        //await Task.Delay(5000);
+                        await OnClickHexFileRead(_);
                         // CheckSum計算
-                        CalcCheckSum.Execute();
-                    }
-                    else
-                    {
-                        hex = null;
-                    }
+                        DialogMessage.Value = "Calculating Checksum ...";
+                        await OnClickCalcCheckSum(_);
+                        args.Session.Close(false);
+                    });
                 })
                 .AddTo(disposables);
             // HexFile Info 設定GUI
@@ -157,26 +138,91 @@ namespace HexTextUtil
             CalcCheckSum
                 .Subscribe(async _ =>
                 {
-                    if (hex is not null)
+                    DialogMessage.Value = "Calculating Checksum ...";
+                    var result = await DialogHost.Show(this.dialog, async delegate (object sender, DialogOpenedEventArgs args)
                     {
-                        var config = Config.ChecksumSettings[SelectIndexCheckSumSettings.Value];
-                        var checksum = hex.CalcCheckSum(config.AddressRangeBegin.Value, config.AddressRangeEnd.Value, config.Blank.Value);
-                        var sb = new StringBuilder();
-                        if (config.CalcTotal.Value)
-                        {
-                            sb.AppendLine($"{FormatCheckSum(checksum, config.Length.Value)} (補数なし)");
-                        }
-                        if (config.CalcTwosComp.Value)
-                        {
-                            var temp = (checksum ^ 0xFFFFFFFFFFFFFFFF) + 1;
-                            sb.AppendLine($"{FormatCheckSum(temp, config.Length.Value)} (2の補数)");
-                        }
-                        CalcCheckSumResult.Value = sb.ToString();
-                    }
+                        //await Task.Delay(5000);
+                        // CheckSum計算
+                        await OnClickCalcCheckSum(_);
+                        args.Session.Close(false);
+                    });
                 })
                 .AddTo(disposables);
             CalcCheckSumResult
                 .AddTo(disposables);
+            DialogMessage
+                .AddTo(disposables);
+        }
+
+        private async Task OnClickHexFileRead(object sender)
+        {
+            // hexファイルロード
+            //hex = new HexText.HexInfo();
+            //var result = hex.Load(HexFilePath.Value);
+            var result = await Task.Run(() =>
+            {
+                hex = new HexText.HexInfo();
+                return hex.Load(HexFilePath.Value);
+            });
+            HexTextLoadStatus.Value = result switch
+            {
+                HexText.HexTextLoader.LoadStatus.Success => "File Read OK",
+                HexText.HexTextLoader.LoadStatus.NotFoundEndRecord => "Err: FileFormat NG",
+                HexText.HexTextLoader.LoadStatus.DetectInvalidFormatLine => "Err: FileFormat NG",
+                HexText.HexTextLoader.LoadStatus.ReadFileError => "Err: File is locked",
+                HexText.HexTextLoader.LoadStatus.DetectCheckSumError => "Err: CheckSum NG",
+                _ => "",
+            };
+            // 成功したらGUIに展開
+            if (result == HexText.HexTextLoader.LoadStatus.Success)
+            {
+                // HexTextFile Info
+                HexTextAddressBegin.Value = $"{hex.AddressBegin:X8}";
+                HexTextAddressEnd.Value = $"{hex.AddressEnd:X8}";
+                var ishex = hex.FileFormat == HexText.HexTextLoader.HexTextFileFormat.IntelHex;
+                HexTextFormatIntel.Value = ishex;
+                HexTextFormatMot.Value = !ishex;
+                // CheckSum Info
+                var config = Config.ChecksumSettings[0];
+                if (!config.AddressRangeFix)
+                {
+                    config.AddressRangeBegin.Value = hex.AddressBegin;
+                    config.AddressRangeEnd.Value = hex.AddressEnd;
+                    config.AddressRangeBeginText.Value = $"{config.AddressRangeBegin.Value:X8}";
+                    config.AddressRangeEndText.Value = $"{config.AddressRangeEnd.Value:X8}";
+                }
+            }
+            else
+            {
+                hex = null;
+            }
+        }
+
+        private async Task OnClickCalcCheckSum(object sender)
+        {
+            if (hex is not null)
+            {
+                var config = Config.ChecksumSettings[SelectIndexCheckSumSettings.Value];
+                var checksum = await Task.Run(() =>
+                {
+                    return hex.CalcCheckSum(config.AddressRangeBegin.Value, config.AddressRangeEnd.Value, config.Blank.Value);
+                });
+                var sb = new StringBuilder();
+                if (config.CalcTotal.Value)
+                {
+                    sb.AppendLine($"{FormatCheckSum(checksum, config.Length.Value)} (補数なし)");
+                }
+                if (config.CalcTwosComp.Value)
+                {
+                    var temp = (checksum ^ 0xFFFFFFFFFFFFFFFF) + 1;
+                    sb.AppendLine($"{FormatCheckSum(temp, config.Length.Value)} (2の補数)");
+                }
+                CalcCheckSumResult.Value = sb.ToString();
+            }
+            else
+            {
+                CalcCheckSumResult.Value = "HexFile is not read.";
+            }
         }
 
         private string FormatCheckSum(UInt64 checksum, CheckSumLength len)

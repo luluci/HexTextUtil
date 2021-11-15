@@ -28,7 +28,7 @@ namespace HexTextUtil
 
             try
             {
-                this.vm = new MainWindowViewModel();
+                this.vm = new MainWindowViewModel(dialog);
             }
             catch (Exception ex)
             {

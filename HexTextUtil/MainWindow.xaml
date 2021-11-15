@@ -12,6 +12,31 @@
         d:DataContext="{d:DesignInstance Type=local:MainWindowViewModel}"
         mc:Ignorable="d"
         Title="HexTextUtil" Height="406" Width="308" MinWidth="350" MinHeight="450">
+    <materialDesign:DialogHost  DialogTheme="Inherit">
+        <materialDesign:DialogHost.DialogContent>
+            <StackPanel Margin="16" x:Name="dialog">
+                <materialDesign:Card UniformCornerRadius="14" Padding="4" Height="29" Width="29" Margin="0,0,0,10">
+                    <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" IsIndeterminate="True" />
+                </materialDesign:Card>
+                <TextBlock Text="{Binding DialogMessage.Value}" FontFamily="Meiryo UI" TextAlignment="Center"/>
+                <!--
+                <GroupBox Header="Loading...">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding ClosingSaveConfig}"  Content="Save Config" Width="120" Margin="0,0,0,5" Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" HorizontalAlignment="Center" IsHitTestVisible="False" IsTabStop="False" />
+                        <CheckBox IsChecked="{Binding ClosingSaveSettings}" Content="Save Settings" Width="120" Margin="0,0,0,5" Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" HorizontalAlignment="Center" IsHitTestVisible="False" IsTabStop="False" />
+                    </StackPanel>
+                </GroupBox>
+                <Button Click="Button_Shutdown_Click" Style="{StaticResource MaterialDesignFlatButton}" IsCancel="True" Margin="0 8 0 0" Content="強制終了" />
+                <Button Style="{StaticResource MaterialDesignFlatButton}" IsCancel="True" Margin="0 8 8 0" Content="CANCEL" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}">
+                    <Button.CommandParameter>
+                        <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">
+                            False
+                        </system:Boolean>
+                    </Button.CommandParameter>
+                </Button>
+                -->
+            </StackPanel>
+        </materialDesign:DialogHost.DialogContent>
     <Grid>
         <Grid>
             <Grid Margin="0,10,0,0" Height="35" VerticalAlignment="Top">
@@ -124,5 +149,6 @@
             </GroupBox>
         </Grid>
 
-    </Grid>
+        </Grid>
+    </materialDesign:DialogHost>
 </Window>
