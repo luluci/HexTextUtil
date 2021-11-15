@@ -174,7 +174,7 @@ namespace HexTextUtil
                 _ => "",
             };
             // 成功したらGUIに展開
-            if (result == HexText.HexTextLoader.LoadStatus.Success)
+            if (hex is not null && result == HexText.HexTextLoader.LoadStatus.Success)
             {
                 // HexTextFile Info
                 HexTextAddressBegin.Value = $"{hex.AddressBegin:X8}";

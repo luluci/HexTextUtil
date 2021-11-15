@@ -187,7 +187,7 @@ namespace HexTextUtil.HexText.HexTextLoader
             // とりあえずEOFで正常終了扱いとする
             //Status = LoadStatus.Success;
             //Dispose(true);
-            return null;
+            return Load();
         }
         private HexTextRecord? AnalyzeRecord8(string line, byte[] bytes)
         {
@@ -195,7 +195,7 @@ namespace HexTextUtil.HexText.HexTextLoader
             // とりあえずEOFで正常終了扱いとする
             //Status = LoadStatus.Success;
             //Dispose(true);
-            return null;
+            return Load();
         }
         private HexTextRecord? AnalyzeRecord9(string line, byte[] bytes)
         {
@@ -203,7 +203,7 @@ namespace HexTextUtil.HexText.HexTextLoader
             // とりあえずEOFで正常終了扱いとする
             //Status = LoadStatus.Success;
             //Dispose(true);
-            return null;
+            return Load();
         }
 
         private HexTextRecord? AnalyzeDataRecord(string line, byte[] bytes, int addressLen)
