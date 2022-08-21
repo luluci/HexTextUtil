@@ -89,10 +89,10 @@ namespace HexTextUtil
             HexFilePath
                 .AddTo(disposables);
             HexFilePreviewDragOver
-                .Subscribe(e => HexTextFilePreviewDragOver((DragEventArgs)e))
+                .Subscribe((e) => { if (e is not null) HexTextFilePreviewDragOver((DragEventArgs)e); })
                 .AddTo(disposables);
             HexFileDrop
-                .Subscribe(e => HexTextFileDrop((DragEventArgs)e))
+                .Subscribe((e) => { if (e is not null) HexTextFileDrop((DragEventArgs)e); })
                 .AddTo(disposables);
             HexTextLoadStatus
                 .AddTo(disposables);
@@ -154,7 +154,7 @@ namespace HexTextUtil
                 .AddTo(disposables);
         }
 
-        private async Task OnClickHexFileRead(object sender)
+        private async Task OnClickHexFileRead(object? sender)
         {
             // hexファイルロード
             //hex = new HexText.HexInfo();
@@ -198,7 +198,7 @@ namespace HexTextUtil
             }
         }
 
-        private async Task OnClickCalcCheckSum(object sender)
+        private async Task OnClickCalcCheckSum(object? sender)
         {
             if (hex is not null)
             {
