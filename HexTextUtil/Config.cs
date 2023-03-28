@@ -122,6 +122,8 @@ namespace HexTextUtil
                         setting.LengthValue.Value = (uint)setting.Length.Value;
                         setting.CalcTotal.Value = item.CalcTotal;
                         setting.CalcTwosComp.Value = item.CalcTwosCompl;
+                        setting.FormatTotal = item.FormatTotal;
+                        setting.FormatTwosComp = item.FormatTwosCompl;
                         //
                         checksumSettings.Add(setting);
                     }
@@ -241,6 +243,9 @@ namespace HexTextUtil
         public ReactivePropertySlim<bool> CalcTotal { get; set; } = new ReactivePropertySlim<bool>(false);
         // 2の補数
         public ReactivePropertySlim<bool> CalcTwosComp { get; set; } = new ReactivePropertySlim<bool>(true);
+        // チェックサム出力フォーマット
+        public string FormatTotal { get; set; } = string.Empty;
+        public string FormatTwosComp { get; set; } = string.Empty;
 
         public CheckSumSetting()
         {
@@ -380,6 +385,12 @@ namespace HexTextUtil
         public bool CalcTotal { get; set; } = false;
         [JsonPropertyName("calc_twos_compl")]
         public bool CalcTwosCompl { get; set; } = true;
+
+        // OutputFormat
+        [JsonPropertyName("fmt_total")]
+        public string FormatTotal { get; set; } = string.Empty;
+        [JsonPropertyName("fmt_twos_compl")]
+        public string FormatTwosCompl { get; set; } = string.Empty;
     }
 
     public class JsonAddressRange

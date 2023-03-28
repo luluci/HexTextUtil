@@ -210,12 +210,26 @@ namespace HexTextUtil
                 var sb = new StringBuilder();
                 if (config.CalcTotal.Value)
                 {
-                    sb.AppendLine($"{FormatCheckSum(checksum, config.Length.Value)} (補数なし)");
+                    if (Object.ReferenceEquals(config.FormatTotal, string.Empty))
+                    {
+                        sb.AppendLine($"{FormatCheckSum(checksum, config.Length.Value)} (補数なし)");
+                    }
+                    else
+                    {
+                        sb.AppendLine(FormatCheckSum(config.FormatTotal, config, checksum));
+                    }
                 }
                 if (config.CalcTwosComp.Value)
                 {
                     var temp = (checksum ^ 0xFFFFFFFFFFFFFFFF) + 1;
-                    sb.AppendLine($"{FormatCheckSum(temp, config.Length.Value)} (2の補数)");
+                    if (Object.ReferenceEquals(config.FormatTotal, string.Empty))
+                    {
+                        sb.AppendLine($"{FormatCheckSum(temp, config.Length.Value)} (2の補数)");
+                    }
+                    else
+                    {
+                        sb.AppendLine(FormatCheckSum(config.FormatTwosComp, config, temp));
+                    }
                 }
                 CalcCheckSumResult.Value = sb.ToString();
             }
@@ -223,6 +237,16 @@ namespace HexTextUtil
             {
                 CalcCheckSumResult.Value = "HexFile is not read.";
             }
+        }
+
+        private string FormatCheckSum(string format, CheckSumSetting config, UInt64 checksum)
+        {
+            var chksum = FormatCheckSum(checksum, config.Length.Value);
+            var output = format.Replace("%checksum%", chksum);
+            output = output.Replace("%addr_begin%", config.AddressRangeBeginText.Value);
+            output = output.Replace("%addr_end%", config.AddressRangeEndText.Value);
+            output = output.Replace("%blank%", config.BlankText.Value);
+            return output;
         }
 
         private string FormatCheckSum(UInt64 checksum, CheckSumLength len)
